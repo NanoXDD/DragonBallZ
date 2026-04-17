@@ -5,4 +5,7 @@ import tailwindcss from '@tailwindcss/vite'
 // https://vite.dev/config/
 export default defineConfig({
   plugins: [react(), tailwindcss()],  // ← Arreglado: faltaba una coma y paréntesis
+  publicDir: 'public',  // ya es el valor por defecto
+  root: 'public'
+  
 })
