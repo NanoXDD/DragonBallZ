@@ -72,6 +72,7 @@ function App() {
   return (
     <div className="min-h-screen bg-linear-to-br from-orange-950 via-orange-900 to-red-950 text-white font-['Inter'] relative overflow-x-hidden p-4">
       <Routes>
+        <Route path='/Seleccionar carta' element={<SeleccionarCartas mazo={cartas} />}/>
         <Route path='/' element={<ListaCartas cartas={cartas} alEliminar={eliminarCarta}/>}/>
         <Route path='/crearCarta' element={<FormularioCarta alEnviar={crearCarta} creando={creando} esEdicion={false}/>}/>
         <Route path='/actualizar/:id' element={<FormularioCarta alEnviar={actualizarCarta} creando={creando} esEdicion={true}/>}/>
