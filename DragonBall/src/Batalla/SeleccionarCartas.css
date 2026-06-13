@@ -1,0 +1,28 @@
+/* Estilos básicos para SeleccionarCartas */
+.sc-container{display:flex;justify-content:center;padding:2rem}
+.sc-inner{width:100%;max-width:1100px;background:rgba(255,255,255,0.04);border-radius:12px;padding:1.25rem;box-shadow:0 6px 18px rgba(0,0,0,0.45)}
+.sc-header{margin-bottom:0.75rem}
+.sc-title{font-size:1.5rem;margin:0 0 0.25rem}
+.sc-sub{margin:0;color:rgba(255,255,255,0.75)}
+.sc-loading{display:flex;align-items:center;gap:0.75rem;padding:1rem}
+.sc-spinner{width:28px;height:28px;border:4px solid rgba(255,255,255,0.08);border-top-color:#f59e0b;border-radius:50%;animation:sc-spin 1s linear infinite}
+@keyframes sc-spin{to{transform:rotate(360deg)}}
+.sc-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:1rem;margin:0.75rem 0}
+.sc-card-wrapper{outline:none}
+.sc-card{background:linear-gradient(180deg,rgba(255,255,255,0.02),rgba(255,255,255,0.01));padding:0.5rem;border-radius:10px;cursor:pointer;transition:transform .15s ease,box-shadow .15s ease}
+.sc-card:focus,.sc-card:hover{transform:translateY(-6px);box-shadow:0 8px 20px rgba(0,0,0,0.5)}
+.sc-card-selected{border:2px solid #f97316}
+.sc-badge{margin-top:0.5rem;background:linear-gradient(90deg,#f97316,#ef4444);color:#111;padding:0.25rem 0.5rem;border-radius:999px;display:inline-block;font-weight:700}
+.sc-panel{margin-top:1rem;background:rgba(0,0,0,0.12);padding:0.75rem;border-radius:8px;display:flex;flex-direction:column;gap:0.75rem}
+.sc-panel-cards{display:flex;align-items:center;justify-content:space-between;gap:1rem}
+.sc-panel-item{flex:1}
+.sc-panel-label{font-size:.85rem;color:rgba(255,255,255,0.75)}
+.sc-panel-value{font-weight:700}
+.sc-vs{font-weight:900;padding:0 0.5rem}
+.sc-panel-actions{display:flex;gap:0.5rem}
+.sc-button{background:transparent;border:1px solid rgba(255,255,255,0.12);padding:0.5rem 0.75rem;border-radius:8px;color:inherit;cursor:pointer}
+.sc-button-primary{background:linear-gradient(90deg,#f97316,#ef4444);border:none}
+.sc-button-disabled{opacity:0.5;pointer-events:none}
+.sc-hint{color:rgba(255,255,255,0.6);font-size:.9rem}
+.sc-empty{padding:1rem;text-align:center}
+.sc-cta{display:inline-block;margin-top:.5rem;padding:.5rem .75rem;background:#fde68a;color:#111;border-radius:8px;text-decoration:none}

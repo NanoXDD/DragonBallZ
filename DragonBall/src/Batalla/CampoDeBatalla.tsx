@@ -28,6 +28,8 @@ function CampoDeBatalla({ cartas }: Props) {
   const [gameOver, setGameOver] = useState(false);
   const [winner, setWinner] = useState<Jugador | null>(null);
   const [draw, setDraw] = useState(false);
+  const [autoMode, setAutoMode] = useState(false);
+  const [autoInterval, setAutoInterval] = useState(700);
 
   useEffect(() => {
     if (!id1 || !id2) return;
@@ -64,7 +66,7 @@ function CampoDeBatalla({ cartas }: Props) {
 
   // Ejecuta un ataque indicando explícitamente qué jugador ataca
   const ejecutarAtaqueManual = (atacanteJugador: Jugador) => {
-    if (!carta1 || !carta2 || gameOver || cartaAtacando) return;
+    if (!carta1 || !carta2 || gameOver || cartaAtacando || autoMode) return;
 
     const atacante = atacanteJugador === "p1" ? carta1 : carta2;
     const defensor = atacanteJugador === "p1" ? carta2 : carta1;
@@ -80,6 +82,7 @@ function CampoDeBatalla({ cartas }: Props) {
     if (vidaRestante <= 0) {
       setGameOver(true);
       setWinner(atacanteJugador);
+      setAutoMode(false);
       return;
     }
 
@@ -89,6 +92,7 @@ function CampoDeBatalla({ cartas }: Props) {
     if (checkStalemate(carta1Actualizada, carta2Actualizada)) {
       setDraw(true);
       setGameOver(true);
+      setAutoMode(false);
       return;
     }
   };
@@ -108,6 +112,7 @@ function CampoDeBatalla({ cartas }: Props) {
     if (gameOver || !carta1 || !carta2) return;
     setGameOver(true);
     setWinner(turno === 1 ? "p2" : "p1");
+    setAutoMode(false);
   };
 
   useEffect(() => {
@@ -121,6 +126,18 @@ function CampoDeBatalla({ cartas }: Props) {
       window.clearTimeout(animacion);
     };
   }, [cartaAtacando, gameOver]);
+
+  // Efecto para auto-batalla
+  useEffect(() => {
+    if (!autoMode || gameOver) return;
+    const id = window.setInterval(() => {
+      if (!cartaAtacando && !gameOver) {
+        siguienteTurno();
+      }
+    }, autoInterval);
+
+    return () => window.clearInterval(id);
+  }, [autoMode, autoInterval, cartaAtacando, gameOver, carta1, carta2, turno]);
 
   if (!id1 || !id2 || !carta1 || !carta2) {
     return (
@@ -241,8 +258,8 @@ function CampoDeBatalla({ cartas }: Props) {
             <div className="grid gap-4 md:grid-cols-2">
               <div className="rounded-3xl border border-white/10 bg-slate-900/80 p-6">
                 <p className="text-sm uppercase tracking-[0.2em] text-orange-200/80">Modo</p>
-                <p className="mt-3 text-lg font-semibold text-yellow-300">Manual</p>
-                <p className="mt-2 text-sm text-orange-100">Haz click en una de las cartas para que ataque a su oponente.</p>
+                  <p className="mt-3 text-lg font-semibold text-yellow-300">{autoMode ? "Auto" : "Manual"}</p>
+                  <p className="mt-2 text-sm text-orange-100">{autoMode ? "La batalla avanza automáticamente hasta que termine." : "Haz click en una de las cartas para que ataque a su oponente."}</p>
               </div>
               <div className="rounded-3xl border border-white/10 bg-slate-900/80 p-6">
                 <p className="text-sm uppercase tracking-[0.2em] text-orange-200/80">Último ataque</p>
@@ -265,11 +282,22 @@ function CampoDeBatalla({ cartas }: Props) {
                 <button
                   type="button"
                   onClick={siguienteTurno}
-                  disabled={Boolean(cartaAtacando) || gameOver}
+                  disabled={Boolean(cartaAtacando) || gameOver || autoMode}
                   className="rounded-full bg-yellow-300 px-5 py-3 text-sm font-black uppercase tracking-[0.16em] text-black transition hover:bg-yellow-200 disabled:cursor-not-allowed disabled:bg-gray-700"
                 >
                   {cartaAtacando ? "Golpe en curso..." : "Siguiente turno"}
                 </button>
+
+                <div className="flex gap-2">
+                  <button
+                    type="button"
+                    onClick={() => setAutoMode((v) => !v)}
+                    disabled={gameOver}
+                    className="rounded-full bg-emerald-500 px-6 py-3 text-sm font-black uppercase tracking-[0.12em] text-white transition hover:bg-emerald-400 disabled:cursor-not-allowed disabled:bg-gray-700"
+                  >
+                    {autoMode ? "Detener auto-batalla" : "Auto-batalla"}
+                  </button>
+                </div>
 
                 <button
                   type="button"
