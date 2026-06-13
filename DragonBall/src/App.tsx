@@ -1,6 +1,6 @@
 ﻿import { useEffect, useState } from "react";
 import "./App.css";
-import FormularioCarta from "./pages/formulario"; 
+import FormularioCarta from "./pages/formulario";
 import ListaCartas from "./pages/lista";
 import { Route, Routes } from "react-router-dom";
 import type { Carta } from "./util/interface";
@@ -11,17 +11,23 @@ import {
   actualizarCarta as apiActualizarCarta,
   eliminarCarta as apiEliminarCarta,
 } from "./util/api";
+import SeleccionarCartas from "./Batalla/SeleccionarCartas";
+import CampoDeBatalla from "./Batalla/CampoDeBatalla";
 
 function App() {
   const [cartas, setCartas] = useState<Carta[]>([]);
   const [creando, setCreando] = useState(false);
+  const [loading, setLoading] = useState(true);
 
   const obtenerCartas = async () => {
+    setLoading(true);
     try {
       const cartasApi = await apiObtenerCartas();
       setCartas(cartasApi.map((carta) => desdeApiCarta(carta)));
     } catch (error) {
       console.error("Error al obtener los datos:", error);
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -72,9 +78,17 @@ function App() {
   return (
     <div className="min-h-screen bg-linear-to-br from-orange-950 via-orange-900 to-red-950 text-white font-['Inter'] relative overflow-x-hidden p-4">
       <Routes>
-        <Route path='/' element={<ListaCartas cartas={cartas} alEliminar={eliminarCarta}/>}/>
-        <Route path='/crearCarta' element={<FormularioCarta alEnviar={crearCarta} creando={creando} esEdicion={false}/>}/>
-        <Route path='/actualizar/:id' element={<FormularioCarta alEnviar={actualizarCarta} creando={creando} esEdicion={true}/>}/>
+        <Route path="/" element={<ListaCartas cartas={cartas} alEliminar={eliminarCarta} />} />
+        <Route
+          path="/crearCarta"
+          element={<FormularioCarta alEnviar={crearCarta} creando={creando} esEdicion={false} />}
+        />
+        <Route
+          path="/actualizar/:id"
+          element={<FormularioCarta alEnviar={actualizarCarta} creando={creando} esEdicion={true} />}
+        />
+        <Route path="/seleccionar-cartas" element={<SeleccionarCartas mazo={cartas} loading={loading} />} />
+        <Route path="/campo-de-batalla/:id1/:id2" element={<CampoDeBatalla cartas={cartas} />} />
       </Routes>
     </div>
   );

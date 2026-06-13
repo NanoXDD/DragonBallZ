@@ -54,14 +54,15 @@ function TarjetaGuerrero({
     return (
         <div 
             className={`
-                relative w-80 rounded-xl overflow-hidden cursor-pointer
-                bg-linear-to-br ${obtenerColorTipo(Tipo)}
+                relative w-72 rounded-xl overflow-hidden cursor-pointer
+                bg-gradient-to-br ${obtenerColorTipo(Tipo)}
                 border-2 border-yellow-500 shadow-[0_0_20px_rgba(255,165,0,0.3)]
+                flex flex-col
                 ${className}
             `} 
             onClick={() => alAbrir && alAbrir()}
         >
-            <div className="absolute top-0 left-0 w-full h-1 bg-linear-to-r from-transparent via-yellow-400 to-transparent opacity-50"></div>
+            <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-transparent via-yellow-400 to-transparent opacity-50"></div>
             
             {Rareza && (
                 <span className={`
@@ -78,11 +79,12 @@ function TarjetaGuerrero({
                 ⚡
             </div>
 
+            {/* Contenedor de imagen más alto */}
             <div className="relative m-4 mb-2">
-                <div className="absolute -inset-2 bg-linear-to-r from-yellow-600 to-orange-500 rounded-lg blur-sm opacity-50"></div>
+                <div className="absolute -inset-2 bg-gradient-to-r from-yellow-600 to-orange-500 rounded-lg blur-sm opacity-50"></div>
                 <div className="absolute -inset-1 bg-black rounded-lg transform scale-[1.02]"></div>
                 
-                <div className="relative z-10 p-1.5 bg-linear-to-br from-orange-700 to-amber-600 rounded-lg shadow-xl">
+                <div className="relative z-10 p-1.5 bg-gradient-to-br from-orange-700 to-amber-600 rounded-lg shadow-xl">
                     <div className="absolute inset-0 rounded-lg border-2 border-yellow-400/30 pointer-events-none"></div>
                     
                     <div className="absolute top-0 left-0 w-4 h-4 border-t-2 border-l-2 border-yellow-400 rounded-tl-lg"></div>
@@ -90,11 +92,11 @@ function TarjetaGuerrero({
                     <div className="absolute bottom-0 left-0 w-4 h-4 border-b-2 border-l-2 border-yellow-400 rounded-bl-lg"></div>
                     <div className="absolute bottom-0 right-0 w-4 h-4 border-b-2 border-r-2 border-yellow-400 rounded-br-lg"></div>
                     
-
+                    {/* Imagen más alta: h-64 en lugar de h-56 */}
                     <img 
                         src={Imagen} 
                         alt={Nombre} 
-                        className="relative z-10 w-full h-56 object-contain rounded-md bg-black/40"
+                        className="relative z-10 w-full h-64 object-contain rounded-md bg-black/40"
                     />
           
                     <div className="absolute top-0 left-0 w-full h-full pointer-events-none">
@@ -104,7 +106,7 @@ function TarjetaGuerrero({
                 </div>
             </div>
 
-            <div className="p-4 pt-2 relative">
+            <div className="p-4 pt-2 relative flex-1 flex flex-col">
                 <h3 className="text-white font-['Black_Ops_One',cursive] text-xl mb-1 text-center 
                     drop-shadow-[0_2px_2px_rgba(0,0,0,0.8)] tracking-wider my-[3px]">
                     {Nombre}
@@ -115,19 +117,21 @@ function TarjetaGuerrero({
                 </p>
 
                 <div className="grid grid-cols-3 gap-2 mb-3">
-                    <div className="bg-black/60 rounded-lg p-2 border border-orange-600/50">
+                    <div className="bg-black/60 rounded-lg p-2 border border-orange-600/50 text-center">
                         <span className="block text-xs text-gray-400 uppercase">Ataque</span>
                         <span className="text-lg font-bold text-yellow-500">{Ataque}</span>
                     </div>
-                    <div className="bg-black/60 rounded-lg p-2 border border-blue-600/50">
+                    <div className="bg-black/60 rounded-lg p-2 border border-blue-600/50 text-center">
                         <span className="block text-xs text-gray-400 uppercase">Defensa</span>
                         <span className="text-lg font-bold text-blue-500">{Defensa}</span>
                     </div>
-                    <div className="bg-black/60 rounded-lg p-2 border border-green-600/50">
+                    <div className="bg-black/60 rounded-lg p-2 border border-green-600/50 text-center">
                         <span className="block text-xs text-gray-400 uppercase">Vida</span>
                         <span className="text-lg font-bold text-green-500">{vida}</span>
                     </div>
                 </div>
+                
+                {/* Icono decorativo abajo a la derecha */}
                 <div className="absolute bottom-2 right-2 text-yellow-500 opacity-80">
                     <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
                         <path fillRule="evenodd" d="M10.293 3.293a1 1 0 011.414 0l6 6a1 1 0 010 1.414l-6 6a1 1 0 01-1.414-1.414L14.586 11H3a1 1 0 110-2h11.586l-4.293-4.293a1 1 0 010-1.414z" clipRule="evenodd" />
@@ -135,7 +139,7 @@ function TarjetaGuerrero({
                 </div>
             </div>
 
-            <div className="absolute bottom-0 right-0 w-12 h-12 bg-linear-to-r from-black/50 to-transparent transform rotate-45 translate-x-6 translate-y-6"></div>
+            <div className="absolute bottom-0 right-0 w-12 h-12 bg-gradient-to-r from-black/50 to-transparent transform rotate-45 translate-x-6 translate-y-6"></div>
         </div>
     );
 }

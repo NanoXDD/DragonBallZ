@@ -32,7 +32,9 @@ function ListaCartas({cartas, alEliminar}: {cartas: Carta[], alEliminar: (id: nu
           alEliminar={() => alEliminar(seleccionado.Numero)} 
         />
       )}
-    <div className="flex justify-center mb-20 px-4">
+
+      {/* Botones de acción */}
+      <div className="flex flex-wrap justify-center gap-4 mb-20 px-4">
         <Link 
           to='/crearCarta' 
           className="group relative inline-flex items-center justify-center px-8 py-4 
@@ -63,20 +65,40 @@ function ListaCartas({cartas, alEliminar}: {cartas: Carta[], alEliminar: (id: nu
             Crear Nuevo Guerrero
           </span>
         </Link>
+
+        <Link
+          to='/seleccionar-cartas'
+          className="group relative inline-flex items-center justify-center px-8 py-4
+            bg-linear-to-r from-red-800 via-orange-700 to-yellow-700
+            text-white font-bold text-lg rounded-xl
+            shadow-2xl shadow-red-950/40
+            transform transition-all duration-300
+            hover:scale-105 hover:from-red-900 hover:to-yellow-800
+            focus:outline-none focus:ring-4 focus:ring-orange-300/40
+            overflow-hidden"
+        >
+          <span className="absolute inset-0 bg-white opacity-0 group-hover:opacity-20 transition-opacity duration-300"></span>
+          <span className="relative flex items-center gap-2">
+            <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
+            </svg>
+            Ir a batalla
+          </span>
+        </Link>
       </div>
      
+      {/* Título */}
       <div className="text-center mb-20 px-5">
         <h1 className="text-5xl md:text-6xl font-extrabold tracking-tight text-transparent bg-clip-text bg-linear-to-r from-orange-300 via-yellow-300 to-red-400 drop-shadow-[0_8px_30px_rgba(0,0,0,0.45)]">
           Dragon Ball Z
         </h1>
-        <p className="mt-3 text-sm uppercase tracking-[0.35em] text-orange-200/90">
+        <p className="mt-3 text-sm uppercase tracking-[0.35em] text-orange-100/90 h-10">
           Galería de guerreros
         </p>
       </div>
 
-      
-
-      <div className="flex flex-wrap justify-center gap-16 mt-16 px-4">
+      {/* Contenedor centrado con flex-wrap */}
+      <div className="flex flex-wrap justify-center gap-20 px-10 pb-20">
         {cartasFiltradas.map((carta) => (
           <div 
             key={carta.Numero} 

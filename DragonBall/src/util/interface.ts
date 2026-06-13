@@ -17,6 +17,8 @@ export type CartaApi = {
 };
 
 export type Carta = {
+  idCard: Key | null | undefined;
+  attributes: any;
   Numero: number;
   Nombre: string;
   Tipo: string;
