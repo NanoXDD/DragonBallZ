@@ -8,6 +8,7 @@ interface FormularioCartaProps {
   esEdicion?: boolean;
 }
 
+// ==================== VALIDACIONES ====================
 const validarCampo = (campo: keyof Carta, valor: any): string => {
   switch (campo) {
     case "Nombre":
@@ -67,137 +68,103 @@ const extraerUrlImagen = (url: string) => {
   }
 };
 
-// Componente de vista previa con estilo Dragon Ball
+// ==================== VISTA PREVIA ====================
 const VistaPreviaCarta = ({ carta, imagenProcesada, imagenValida, onImagenStatus }: { carta: Carta; imagenProcesada: string; imagenValida: boolean; onImagenStatus: (valid: boolean) => void }) => {
-  // Calcular estrellas de rareza (del 1 al 5 según algún criterio, aquí usamos longitud del nombre o rareza personalizada)
   const starRating = () => {
     if (carta.Rareza) {
-      if (carta.Rareza.toLowerCase().includes("ssj")) return 5;
-      if (carta.Rareza.toLowerCase().includes("legendario")) return 5;
-      if (carta.Rareza.toLowerCase().includes("épico")) return 4;
-      if (carta.Rareza.toLowerCase().includes("raro")) return 3;
+      const r = carta.Rareza.toLowerCase();
+      if (r.includes("ssj") || r.includes("legendario")) return 5;
+      if (r.includes("épico") || r.includes("ultra")) return 4;
+      if (r.includes("raro")) return 3;
       return 2;
     }
     return 3;
   };
   const stars = starRating();
-  
+  const vidaPorcentaje = Math.min(100, Math.max(0, carta.vida || 0));
+  const colorVida = vidaPorcentaje > 60 ? "#22c55e" : vidaPorcentaje > 30 ? "#eab308" : "#ef4444";
+
   return (
-    <div className="w-80 relative group">
-      {/* Fondo de carta con textura de dragón */}
-      <div className="absolute inset-0 bg-gradient-to-br from-amber-800 to-orange-900 rounded-2xl opacity-20 blur-sm"></div>
-      <div className="relative bg-gradient-to-br from-orange-50 to-yellow-100 rounded-2xl border-4 border-yellow-600 overflow-hidden shadow-2xl transform transition-all hover:scale-105 duration-300">
-        
-        {/* Borde decorativo estilo DBZ */}
-        <div className="absolute top-0 left-0 w-full h-2 bg-gradient-to-r from-red-600 via-orange-500 to-yellow-500"></div>
-        <div className="absolute bottom-0 left-0 w-full h-2 bg-gradient-to-r from-red-600 via-orange-500 to-yellow-500"></div>
-        
-        {/* Cabecera con kanji */}
-        <div className="bg-gradient-to-r from-red-700 to-orange-700 p-2 text-center relative">
-          <div className="absolute left-2 top-1/2 -translate-y-1/2 text-white opacity-30 text-2xl font-black">⚡</div>
-          <h3 className="text-yellow-300 font-bold text-sm tracking-wider">CARTA DE BATALLA</h3>
-          <div className="absolute right-2 top-1/2 -translate-y-1/2 text-white opacity-30 text-2xl font-black">⚡</div>
+    <div className="vista-previa">
+      <div className="carta-preview">
+        <div className="preview-header">
+          <span>⚡</span>
+          <h3>CARTA DE BATALLA</h3>
+          <span>⚡</span>
         </div>
-        
-        {/* Estrellas de rareza */}
-        <div className="flex justify-center gap-1 mt-2">
-          {[...Array(stars)].map((_, i) => (
-            <span key={i} className="text-yellow-500 text-xs">★</span>
-          ))}
-          {[...Array(5-stars)].map((_, i) => (
-            <span key={i} className="text-gray-400 text-xs">☆</span>
-          ))}
+        <div className="preview-stars">
+          {[...Array(stars)].map((_, i) => <span key={i}>★</span>)}
+          {[...Array(5 - stars)].map((_, i) => <span key={i}>☆</span>)}
         </div>
-
-        {/* Imagen del personaje */}
-        <div className="p-4">
-          <div className="relative bg-gradient-to-br from-gray-900 to-gray-800 rounded-xl h-44 flex items-center justify-center border-2 border-yellow-600 shadow-inner">
-            {carta.Imagen ? (
-              imagenValida ? (
-                <img
-                  src={imagenProcesada || carta.Imagen}
-                  alt={carta.Nombre}
-                  className="h-full w-full object-contain rounded-lg"
-                  onLoad={() => onImagenStatus(true)}
-                  onError={() => onImagenStatus(false)}
-                />
-              ) : (
-                <div className="text-center px-3">
-                  <p className="text-white font-bold">Error cargando imagen</p>
-                  <p className="text-red-400 text-xs mt-1">Verifica la URL</p>
-                </div>
-              )
+        <div className="preview-imagen">
+          {carta.Imagen ? (
+            imagenValida ? (
+              <img src={imagenProcesada || carta.Imagen} alt={carta.Nombre} onError={() => onImagenStatus(false)} onLoad={() => onImagenStatus(true)} />
             ) : (
-              <div className="text-center">
-                <div className="text-6xl mb-2">🐉</div>
-                <p className="text-gray-400 text-sm">Sin imagen</p>
-              </div>
-            )}
-            {/* Sello de ki */}
-            <div className="absolute -top-2 -right-2 bg-red-600 rounded-full w-8 h-8 flex items-center justify-center border-2 border-yellow-400">
-              <span className="text-white text-xs font-bold">気</span>
-            </div>
-          </div>
+              <div className="error-imagen">Error cargando imagen</div>
+            )
+          ) : (
+            <div className="sin-imagen">🐉</div>
+          )}
+          <div className="ki-seal">気</div>
         </div>
-
-        {/* Nombre y tipo */}
-        <div className="text-center px-4">
-          <h4 className="text-orange-900 font-extrabold text-xl mb-1 tracking-wide drop-shadow-sm">
-            {carta.Nombre || "??? GUERRERO ???"}
-          </h4>
-          <p className="text-gray-700 text-sm font-semibold bg-orange-200 inline-block px-3 py-0.5 rounded-full">
-            {carta.Tipo || "Desconocido"}
-          </p>
+        <div className="preview-nombre">
+          <h4>{carta.Nombre || "??? GUERRERO ???"}</h4>
+          <p>{carta.Tipo || "Desconocido"}</p>
         </div>
-
-        {/* Stats tipo DBZ */}
-        <div className="grid grid-cols-3 gap-2 p-4 mt-2">
-          <div className="bg-red-100 rounded-lg p-2 text-center border border-red-300 shadow-md">
-            <div className="text-red-700 text-xs font-bold">❤️ VIDA</div>
-            <div className="text-red-800 font-black text-xl">{carta.vida}</div>
-          </div>
-          <div className="bg-orange-100 rounded-lg p-2 text-center border border-orange-300 shadow-md">
-            <div className="text-orange-700 text-xs font-bold">⚡ ATAQUE</div>
-            <div className="text-orange-800 font-black text-xl">{carta.Ataque}</div>
-          </div>
-          <div className="bg-blue-100 rounded-lg p-2 text-center border border-blue-300 shadow-md">
-            <div className="text-blue-700 text-xs font-bold">🛡️ DEFENSA</div>
-            <div className="text-blue-800 font-black text-xl">{carta.Defensa}</div>
-          </div>
+        <div className="preview-stats">
+          <div className="stat"><span>❤️ VIDA</span><span>{carta.vida}</span></div>
+          <div className="stat"><span>⚡ ATAQUE</span><span>{carta.Ataque}</span></div>
+          <div className="stat"><span>🛡️ DEFENSA</span><span>{carta.Defensa}</span></div>
         </div>
-
-        {/* Descripción */}
-        {carta.Descripcion && (
-          <div className="mx-4 mb-4 bg-amber-50 p-2 rounded-lg border border-amber-300 shadow-inner">
-            <p className="text-gray-700 text-xs italic text-center leading-relaxed">
-              " {carta.Descripcion} "
-            </p>
-          </div>
-        )}
-
-        {/* Rareza / transformación */}
-        {carta.Rareza && (
-          <div className="text-center pb-4">
-            <span className="inline-block bg-gradient-to-r from-yellow-400 to-orange-500 text-black text-xs px-4 py-1 rounded-full font-bold shadow-md">
-              ⭐ TRANSFORMACIÓN: {carta.Rareza.toUpperCase()} ⭐
-            </span>
-          </div>
-        )}
-
-        {/* Pie de carta */}
-        <div className="bg-gradient-to-r from-red-800 to-orange-800 p-1 text-center">
-          <p className="text-yellow-300 text-[10px] font-mono">DRAGON BALL Z • PODER DE PELEA</p>
+        <div className="preview-vida-barra">
+          <div className="barra-fondo"><div className="barra-lleno" style={{ width: `${vidaPorcentaje}%`, backgroundColor: colorVida }}></div></div>
         </div>
+        {carta.Descripcion && <div className="preview-descripcion">“ {carta.Descripcion} ”</div>}
+        {carta.Rareza && <div className="preview-rareza">⭐ TRANSFORMACIÓN: {carta.Rareza.toUpperCase()} ⭐</div>}
+        <div className="preview-footer">DRAGON BALL Z • PODER DE PELEA</div>
       </div>
+      <style>{`
+        .vista-previa { display: flex; justify-content: center; }
+        .carta-preview {
+          background: linear-gradient(145deg, #2d1f0c, #1a1206);
+          border-radius: 1.5rem;
+          padding: 1rem;
+          width: 280px;
+          border: 1px solid #facc15;
+          box-shadow: 0 10px 20px rgba(0,0,0,0.5);
+          font-family: 'Poppins', sans-serif;
+        }
+        .preview-header { display: flex; justify-content: space-between; color: #facc15; font-weight: bold; }
+        .preview-stars { text-align: center; color: #facc15; letter-spacing: 4px; margin: 0.3rem 0; }
+        .preview-imagen { position: relative; background: #00000066; border-radius: 1rem; margin: 0.5rem 0; aspect-ratio: 1; overflow: hidden; }
+        .preview-imagen img { width: 100%; height: 100%; object-fit: cover; }
+        .ki-seal { position: absolute; bottom: 5px; right: 8px; background: #ff8c00; color: #fff; border-radius: 50%; width: 28px; height: 28px; display: flex; align-items: center; justify-content: center; font-weight: bold; font-size: 0.8rem; }
+        .error-imagen, .sin-imagen { display: flex; align-items: center; justify-content: center; height: 100%; background: #1e1a2f; color: #facc15; }
+        .preview-nombre { text-align: center; }
+        .preview-nombre h4 { color: #facc15; margin: 0.2rem 0; font-size: 1.2rem; }
+        .preview-nombre p { color: #ffd966; font-size: 0.7rem; }
+        .preview-stats { display: flex; justify-content: space-between; margin: 0.8rem 0; background: #00000055; border-radius: 20px; padding: 0.3rem; }
+        .stat { flex:1; text-align: center; font-size: 0.7rem; color: #fff; }
+        .stat span:first-child { display: block; color: #cbd5e1; }
+        .stat span:last-child { font-weight: bold; color: #facc15; }
+        .preview-vida-barra { margin: 0.3rem 0; }
+        .barra-fondo { background: #1e1a2f; border-radius: 8px; height: 6px; overflow: hidden; }
+        .barra-lleno { height: 100%; transition: width 0.2s; }
+        .preview-descripcion { font-size: 0.7rem; color: #ddd; text-align: center; margin: 0.5rem 0; font-style: italic; }
+        .preview-rareza { font-size: 0.65rem; text-align: center; background: #00000066; border-radius: 20px; padding: 0.2rem; margin: 0.5rem 0; color: #facc15; }
+        .preview-footer { text-align: center; font-size: 0.55rem; color: #aaa; border-top: 1px solid #facc1533; padding-top: 0.5rem; margin-top: 0.5rem; }
+      `}</style>
     </div>
   );
 };
 
+// ==================== COMPONENTE PRINCIPAL ====================
 const FormularioCarta = ({ alEnviar, creando = false, esEdicion = false }: FormularioCartaProps) => {
   const ubicacion = useLocation();
   const navegar = useNavigate();
   const { id } = useParams();
-  
+
   const obtenerEstadoInicialCarta = (): Carta => ({
     Numero: 0,
     Nombre: "",
@@ -253,7 +220,6 @@ const FormularioCarta = ({ alEnviar, creando = false, esEdicion = false }: Formu
     e.preventDefault();
     const validacion = validarTodo(carta);
     const tieneErrores = Object.values(validacion).some((v) => v && v.length > 0);
-    
     if (tieneErrores) {
       setErrores(validacion);
       return;
@@ -266,215 +232,310 @@ const FormularioCarta = ({ alEnviar, creando = false, esEdicion = false }: Formu
     } else {
       await alEnviar(cartaFinal);
     }
-    
     navegar('/');
   };
 
   if (creando) {
     return (
-      <div className="flex items-center justify-center min-h-screen bg-gradient-to-br from-red-900 to-orange-900">
-        <div className="text-center">
-          <div className="relative">
-            <div className="animate-spin rounded-full h-20 w-20 border-4 border-yellow-500 border-t-red-600"></div>
-            <div className="absolute inset-0 flex items-center justify-center">
-              <span className="text-3xl">🐉</span>
-            </div>
-          </div>
-          <p className="text-yellow-300 font-bold mt-4 text-xl">Cargando esferas del dragón...</p>
-        </div>
+      <div className="dbz-loading">
+        <div className="esfera-cargando">🐉</div>
+        <p>Cargando esferas del dragón...</p>
+        <style>{`
+          .dbz-loading { display: flex; flex-direction: column; align-items: center; justify-content: center; height: 60vh; background: linear-gradient(135deg, #0a0c10, #1a1f2e); color: #facc15; }
+          .esfera-cargando { font-size: 4rem; animation: spin 1s infinite; }
+          @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+        `}</style>
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-red-900 via-orange-800 to-yellow-800 py-8 px-4 relative overflow-hidden">
-      {/* Esferas del dragón flotantes de fondo */}
-      <div className="absolute top-10 left-10 opacity-10 animate-pulse">
-        <div className="text-8xl">⭐</div>
-      </div>
-      <div className="absolute bottom-20 right-20 opacity-10 animate-bounce">
-        <div className="text-7xl">🐉</div>
-      </div>
-      <div className="absolute top-1/3 right-5 opacity-10 animate-spin-slow">
-        <div className="text-6xl">★</div>
-      </div>
-      <div className="absolute bottom-10 left-1/4 opacity-5 text-9xl">⚡</div>
-      
-      <div className="max-w-6xl mx-auto relative z-10">
-        <div className="flex justify-between items-center mb-8">
-          <div className="flex-1"></div>
-          <div className="text-center flex-1">
-            <div className="flex justify-center items-center gap-3 mb-2">
-              <span className="text-4xl drop-shadow-lg">🐉</span>
-              <h1 className="text-5xl font-extrabold bg-gradient-to-r from-yellow-300 via-orange-400 to-red-600 bg-clip-text text-transparent inline-block tracking-wider">
-                {esEdicion ? "EDITAR GUERRERO Z" : "CREAR GUERRERO Z"}
-              </h1>
-              <span className="text-4xl drop-shadow-lg">⭐</span>
-            </div>
-            <div className="h-1 w-48 mx-auto bg-gradient-to-r from-yellow-500 via-red-500 to-yellow-500 rounded-full"></div>
+    <div className="formulario-dbz">
+      {/* Elementos decorativos */}
+      <div className="deco estrella">⭐</div>
+      <div className="deco nube">🐉</div>
+      <div className="deco rayo">⚡</div>
+
+      <div className="contenedor-principal">
+        {/* Header */}
+        <div className="header-form">
+          <div className="logo-titulo">
+            <span>🐉</span>
+            <h1>{esEdicion ? "EDITAR GUERRERO Z" : "CREAR GUERRERO Z"}</h1>
+            <span>⭐</span>
           </div>
-          <div className="flex-1 flex justify-end">
-            <button
-              onClick={() => navegar('/')}
-              className="bg-gradient-to-r from-yellow-500 to-orange-600 text-black font-bold py-2 px-6 rounded-full hover:from-yellow-600 hover:to-orange-700 transition-all transform hover:scale-105 shadow-lg flex items-center gap-2 border-2 border-yellow-300"
-            >
-              <span>🐉</span>
-              <span>VER CARTAS</span>
-              <span>→</span>
-            </button>
-          </div>
+          <Link to="/" className="boton-ver-cartas">
+            <span>🐉</span> VER CARTAS <span>→</span>
+          </Link>
         </div>
 
-        <div className="flex flex-col lg:flex-row gap-14 justify-center">
-          {/* Formulario con estilo Dragón Ball */}
-          <div className="w-full lg:w-96">
-            <div className="bg-black/40 backdrop-blur-sm rounded-3xl shadow-2xl border-2 border-yellow-600 overflow-hidden">
-              <div className="bg-gradient-to-r from-red-700 to-orange-700 p-4 text-center relative">
-                <div className="absolute left-3 top-1/2 -translate-y-1/2 text-yellow-300 text-xl">⚡</div>
-                <h2 className="text-yellow-300 font-black text-xl tracking-wider">DATOS DE BATALLA</h2>
-                <div className="absolute right-3 top-1/2 -translate-y-1/2 text-yellow-300 text-xl">⚡</div>
+        <div className="grid-form-vista">
+          {/* Formulario */}
+          <div className="formulario">
+            <div className="card-form">
+              <div className="card-header">
+                <span>⚡</span>
+                <h2>DATOS DE BATALLA</h2>
+                <span>⚡</span>
               </div>
-              
-              <form onSubmit={manejarEnvio} className="p-6 space-y-5">
-                <div>
-                  <label className="block text-yellow-200 font-bold text-sm mb-2">🔥 NOMBRE DEL GUERRERO</label>
-                  <input 
-                    value={carta.Nombre} 
-                    onChange={(e) => manejarCambio("Nombre", e.target.value)} 
-                    placeholder="Ej. Goku, Vegeta, Piccolo" 
-                    className="w-full p-3 bg-orange-100 border-2 border-yellow-600 rounded-xl focus:border-red-600 focus:outline-none transition-colors text-black font-semibold"
-                  />
-                  {errores.Nombre && <span className="text-red-300 text-xs mt-1 block">{errores.Nombre}</span>}
+              <form onSubmit={manejarEnvio}>
+                <div className="campo">
+                  <label>🔥 NOMBRE DEL GUERRERO</label>
+                  <input value={carta.Nombre} onChange={(e) => manejarCambio("Nombre", e.target.value)} placeholder="Ej. Goku, Vegeta, Piccolo" />
+                  {errores.Nombre && <span className="error">{errores.Nombre}</span>}
                 </div>
-
-                <div>
-                  <label className="block text-yellow-200 font-bold text-sm mb-2">🌪️ TIPO / CLASE</label>
-                  <input 
-                    value={carta.Tipo} 
-                    onChange={(e) => manejarCambio("Tipo", e.target.value)} 
-                    placeholder="Ej. Saiyan, Namekusei, Tierra, Dios de la Destrucción" 
-                    className="w-full p-3 bg-orange-100 border-2 border-yellow-600 rounded-xl focus:border-red-600 focus:outline-none transition-colors text-black"
-                  />
-                  {errores.Tipo && <span className="text-red-300 text-xs mt-1 block">{errores.Tipo}</span>}
+                <div className="campo">
+                  <label>🌪️ TIPO / CLASE</label>
+                  <input value={carta.Tipo} onChange={(e) => manejarCambio("Tipo", e.target.value)} placeholder="Ej. Saiyan, Namekusei, Dios de la Destrucción" />
+                  {errores.Tipo && <span className="error">{errores.Tipo}</span>}
                 </div>
-
-                <div className="grid grid-cols-2 gap-4">
-                  <div>
-                    <label className="block text-yellow-200 font-bold text-sm mb-2">❤️ VIDA</label>
-                    <input 
-                      type="number"
-                      min={0}
-                      value={carta.vida} 
-                      onChange={(e) => manejarCambio("vida", Number(e.target.value))} 
-                      className="w-full p-3 bg-orange-100 border-2 border-yellow-600 rounded-xl focus:border-red-600 focus:outline-none text-black font-bold text-center"
-                    />
-                    {errores.vida && <span className="text-red-300 text-xs block">{errores.vida}</span>}
+                <div className="campo-grupo">
+                  <div className="campo">
+                    <label>❤️ VIDA</label>
+                    <input type="number" min={0} value={carta.vida} onChange={(e) => manejarCambio("vida", Number(e.target.value))} />
+                    {errores.vida && <span className="error">{errores.vida}</span>}
                   </div>
-                  <div>
-                    <label className="block text-yellow-200 font-bold text-sm mb-2">⚡ ATAQUE KI</label>
-                    <input 
-                      type="number" 
-                      min={0} 
-                      value={carta.Ataque} 
-                      onChange={(e) => manejarCambio("Ataque", Number(e.target.value))} 
-                      className="w-full p-3 bg-orange-100 border-2 border-yellow-600 rounded-xl focus:border-red-600 focus:outline-none text-black font-bold text-center"
-                    />
-                    {errores.Ataque && <span className="text-red-300 text-xs block">{errores.Ataque}</span>}
+                  <div className="campo">
+                    <label>⚡ ATAQUE KI</label>
+                    <input type="number" min={0} value={carta.Ataque} onChange={(e) => manejarCambio("Ataque", Number(e.target.value))} />
+                    {errores.Ataque && <span className="error">{errores.Ataque}</span>}
                   </div>
-                  <div className="col-span-2">
-                    <label className="block text-yellow-200 font-bold text-sm mb-2">🛡️ DEFENSA / RESISTENCIA</label>
-                    <input 
-                      type="number" 
-                      min={0} 
-                      value={carta.Defensa} 
-                      onChange={(e) => manejarCambio("Defensa", Number(e.target.value))} 
-                      className="w-full p-3 bg-orange-100 border-2 border-yellow-600 rounded-xl focus:border-red-600 focus:outline-none text-black font-bold text-center"
-                    />
-                    {errores.Defensa && <span className="text-red-300 text-xs block">{errores.Defensa}</span>}
+                  <div className="campo">
+                    <label>🛡️ DEFENSA</label>
+                    <input type="number" min={0} value={carta.Defensa} onChange={(e) => manejarCambio("Defensa", Number(e.target.value))} />
+                    {errores.Defensa && <span className="error">{errores.Defensa}</span>}
                   </div>
                 </div>
-
-                <div>
-                  <label className="block text-yellow-200 font-bold text-sm mb-2">📜 DESCRIPCIÓN ÉPICA</label>
-                  <textarea 
-                    value={carta.Descripcion} 
-                    onChange={(e) => manejarCambio("Descripcion", e.target.value)} 
-                    placeholder="Describe su técnica, historia o poder..." 
-                    rows={3}
-                    maxLength={1000}
-                    className="w-full p-3 bg-orange-100 border-2 border-yellow-600 rounded-xl focus:border-red-600 focus:outline-none resize-none text-black"
-                  />
-                  <div className="flex justify-between items-center mt-1">
-                    <span className={`text-xs ${carta.Descripcion.length > 900 ? 'text-red-400 font-bold' : 'text-yellow-300'}`}>
-                      {carta.Descripcion.length}/1000
-                    </span>
-                    {errores.Descripcion && <span className="text-red-300 text-xs">{errores.Descripcion}</span>}
-                  </div>
+                <div className="campo">
+                  <label>📜 DESCRIPCIÓN ÉPICA</label>
+                  <textarea value={carta.Descripcion} onChange={(e) => manejarCambio("Descripcion", e.target.value)} placeholder="Describe su técnica, historia o poder..." rows={3} maxLength={1000} />
+                  <div className="contador">{carta.Descripcion.length}/1000</div>
+                  {errores.Descripcion && <span className="error">{errores.Descripcion}</span>}
                 </div>
-
-                <div>
-                  <label className="block text-yellow-200 font-bold text-sm mb-2">🌟 TRANSFORMACIÓN / RAREZA</label>
-                  <input 
-                    value={carta.Rareza} 
-                    onChange={(e) => manejarCambio("Rareza", e.target.value)} 
-                    placeholder="Ej. Super Saiyan, Ultra Instinto, Legendario" 
-                    className="w-full p-3 bg-orange-100 border-2 border-yellow-600 rounded-xl focus:border-red-600 focus:outline-none text-black"
-                  />
-                  <p className="text-yellow-300 text-xs mt-1">¡A mayor rareza, más estrellas brillarán en la carta!</p>
+                <div className="campo">
+                  <label>🌟 TRANSFORMACIÓN / RAREZA</label>
+                  <input value={carta.Rareza} onChange={(e) => manejarCambio("Rareza", e.target.value)} placeholder="Ej. Super Saiyan, Ultra Instinto, Legendario" />
+                  <p className="ayuda">¡A mayor rareza, más estrellas brillarán en la carta!</p>
                 </div>
-
-                <div>
-                  <label className="block text-yellow-200 font-bold text-sm mb-2">🖼️ URL DE LA IMAGEN (arte del guerrero)</label>
-                  <input 
-                    value={carta.Imagen} 
-                    onChange={(e) => manejarCambio("Imagen", e.target.value)} 
-                    placeholder="https://ejemplo.com/goku.jpg" 
-                    className="w-full p-3 bg-orange-100 border-2 border-yellow-600 rounded-xl focus:border-red-600 focus:outline-none text-black"
-                  />
-                  <p className="text-yellow-300 text-xs mt-1">Debe ser una URL válida que muestre al personaje.</p>
-                  {errores.Imagen && <span className="text-red-300 text-xs mt-1 block">{errores.Imagen}</span>}
+                <div className="campo">
+                  <label>🖼️ URL DE LA IMAGEN (arte del guerrero)</label>
+                  <input value={carta.Imagen} onChange={(e) => manejarCambio("Imagen", e.target.value)} placeholder="https://ejemplo.com/goku.jpg" />
+                  <p className="ayuda">Debe ser una URL válida que muestre al personaje.</p>
+                  {errores.Imagen && <span className="error">{errores.Imagen}</span>}
                 </div>
-
-                <div className="flex gap-3 pt-6">
-                  <button 
-                    type="submit" 
-                    disabled={Object.values(errores).some((v) => v && v.length > 0) || !carta.Imagen || carta.Imagen.trim().length === 0 || !imagenValida}
-                    className="flex-1 bg-gradient-to-r from-yellow-500 to-red-600 text-black font-extrabold py-3 rounded-xl hover:from-yellow-600 hover:to-red-700 transition-all transform hover:scale-105 disabled:opacity-50 disabled:cursor-not-allowed shadow-lg border-2 border-yellow-300"
-                  >
+                <div className="acciones">
+                  <button type="submit" disabled={Object.values(errores).some(v => v && v.length > 0) || !carta.Imagen || !imagenValida} className="boton-principal">
                     {esEdicion ? "⚡ ACTUALIZAR GUERRERO ⚡" : "🐉 CREAR CARTA 🐉"}
                   </button>
-                  
-                  <Link 
-                    to='/' 
-                    className="flex-1 bg-gray-800/80 text-yellow-300 font-bold py-3 rounded-xl hover:bg-gray-900 transition-all transform hover:scale-105 text-center border border-yellow-600"
-                  >
-                    CANCELAR
-                  </Link>
+                  <Link to="/" className="boton-cancelar">CANCELAR</Link>
                 </div>
               </form>
             </div>
           </div>
 
-          {/* Vista previa mejorada */}
-          <div className="w-full lg:w-auto">
-            <div className="sticky top-8">
-              <div className="bg-black/30 backdrop-blur-sm rounded-3xl shadow-2xl border-2 border-yellow-600 overflow-hidden">
-                <div className="bg-gradient-to-r from-red-700 to-orange-700 p-4 text-center">
-                  <h2 className="text-yellow-300 font-black text-xl tracking-wider">✨ VISTA PREVIA DE LA CARTA ✨</h2>
-                </div>
-                <div className="p-6 flex justify-center">
-                  <VistaPreviaCarta 
-                    carta={carta} 
-                    imagenProcesada={imagenProcesada} 
-                    imagenValida={imagenValida} 
-                    onImagenStatus={(valid) => setImagenValida(valid)} 
-                  />
-                </div>
-              </div>
+          {/* Vista previa */}
+          <div className="vista-previa-container">
+            <div className="card-preview">
+              <h2>✨ VISTA PREVIA DE LA CARTA ✨</h2>
+              <VistaPreviaCarta carta={carta} imagenProcesada={imagenProcesada} imagenValida={imagenValida} onImagenStatus={setImagenValida} />
             </div>
           </div>
         </div>
       </div>
+
+      {/* Estilos globales del formulario */}
+      <style>{`
+        .formulario-dbz {
+          min-height: 100vh;
+          background: linear-gradient(135deg, #0a0c10 0%, #1a1f2e 100%);
+          padding: 2rem 1.5rem;
+          position: relative;
+          font-family: 'Poppins', 'Segoe UI', sans-serif;
+          color: #fff;
+        }
+        .deco {
+          position: fixed;
+          font-size: 3rem;
+          opacity: 0.1;
+          pointer-events: none;
+          z-index: 0;
+        }
+        .estrella { top: 10%; left: 5%; animation: flotar 6s infinite; }
+        .nube { bottom: 15%; right: 5%; animation: flotar 8s infinite reverse; }
+        .rayo { top: 30%; right: 10%; animation: flotar 4s infinite; }
+        @keyframes flotar {
+          0% { transform: translateY(0px) rotate(0deg); }
+          50% { transform: translateY(-20px) rotate(5deg); }
+          100% { transform: translateY(0px) rotate(0deg); }
+        }
+        .contenedor-principal {
+          max-width: 1400px;
+          margin: 0 auto;
+          position: relative;
+          z-index: 1;
+        }
+        .header-form {
+          display: flex;
+          justify-content: space-between;
+          align-items: center;
+          flex-wrap: wrap;
+          gap: 1rem;
+          margin-bottom: 2rem;
+          background: rgba(0,0,0,0.6);
+          backdrop-filter: blur(8px);
+          padding: 0.8rem 2rem;
+          border-radius: 60px;
+          border-left: 5px solid #f97316;
+        }
+        .logo-titulo {
+          display: flex;
+          align-items: center;
+          gap: 1rem;
+        }
+        .logo-titulo h1 {
+          background: linear-gradient(135deg, #f97316, #facc15);
+          -webkit-background-clip: text;
+          background-clip: text;
+          color: transparent;
+          font-size: 1.8rem;
+          margin: 0;
+        }
+        .boton-ver-cartas {
+          background: #1e293b;
+          padding: 0.5rem 1.2rem;
+          border-radius: 40px;
+          color: #facc15;
+          text-decoration: none;
+          font-weight: bold;
+          transition: all 0.2s;
+          border: 1px solid #facc15;
+        }
+        .boton-ver-cartas:hover {
+          background: #facc15;
+          color: #1e293b;
+          transform: translateY(-2px);
+        }
+        .grid-form-vista {
+          display: grid;
+          grid-template-columns: 1fr 1fr;
+          gap: 2rem;
+        }
+        .card-form, .card-preview {
+          background: rgba(0,0,0,0.5);
+          backdrop-filter: blur(8px);
+          border-radius: 2rem;
+          padding: 1.5rem;
+          border: 1px solid rgba(250,204,21,0.3);
+          box-shadow: 0 8px 20px rgba(0,0,0,0.4);
+        }
+        .card-header {
+          display: flex;
+          justify-content: center;
+          gap: 1rem;
+          margin-bottom: 1.5rem;
+          font-size: 1.5rem;
+          color: #facc15;
+        }
+        .card-header h2 {
+          margin: 0;
+          font-size: 1.3rem;
+          color: #ffd966;
+        }
+        .campo {
+          margin-bottom: 1.2rem;
+        }
+        .campo label {
+          display: block;
+          font-weight: 600;
+          margin-bottom: 0.4rem;
+          color: #facc15;
+        }
+        .campo input, .campo textarea {
+          width: 100%;
+          background: #1e1f2c;
+          border: 1px solid #f97316;
+          padding: 0.7rem 1rem;
+          border-radius: 1rem;
+          color: white;
+          font-size: 0.9rem;
+          transition: all 0.2s;
+        }
+        .campo input:focus, .campo textarea:focus {
+          outline: none;
+          border-color: #facc15;
+          box-shadow: 0 0 8px rgba(250,204,21,0.5);
+        }
+        .campo-grupo {
+          display: grid;
+          grid-template-columns: 1fr 1fr 1fr;
+          gap: 1rem;
+        }
+        .error {
+          color: #ef4444;
+          font-size: 0.7rem;
+          margin-top: 0.3rem;
+          display: block;
+        }
+        .ayuda {
+          font-size: 0.7rem;
+          color: #9ca3af;
+          margin-top: 0.2rem;
+        }
+        .contador {
+          text-align: right;
+          font-size: 0.7rem;
+          color: #9ca3af;
+        }
+        .acciones {
+          display: flex;
+          gap: 1rem;
+          margin-top: 1.5rem;
+          flex-wrap: wrap;
+        }
+        .boton-principal {
+          background: linear-gradient(95deg, #f97316, #ea580c);
+          border: none;
+          padding: 0.8rem 1.5rem;
+          border-radius: 40px;
+          font-weight: bold;
+          color: white;
+          cursor: pointer;
+          transition: transform 0.2s, box-shadow 0.2s;
+          flex: 1;
+        }
+        .boton-principal:hover:not(:disabled) {
+          transform: translateY(-2px);
+          box-shadow: 0 8px 20px rgba(249,115,22,0.5);
+        }
+        .boton-principal:disabled {
+          opacity: 0.5;
+          cursor: not-allowed;
+        }
+        .boton-cancelar {
+          background: #334155;
+          padding: 0.8rem 1.5rem;
+          border-radius: 40px;
+          text-decoration: none;
+          color: white;
+          text-align: center;
+          transition: background 0.2s;
+        }
+        .boton-cancelar:hover {
+          background: #475569;
+        }
+        .vista-previa-container h2 {
+          text-align: center;
+          color: #facc15;
+          font-size: 1.2rem;
+          margin-bottom: 1.5rem;
+        }
+        @media (max-width: 900px) {
+          .grid-form-vista { grid-template-columns: 1fr; }
+          .campo-grupo { grid-template-columns: 1fr; gap: 0.8rem; }
+          .header-form { flex-direction: column; text-align: center; }
+          .logo-titulo { justify-content: center; }
+        }
+      `}</style>
     </div>
   );
 };

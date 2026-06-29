@@ -1,5 +1,5 @@
-import { useEffect, useState } from "react";
-import { useParams, useNavigate } from "react-router-dom";
+﻿import { useEffect, useRef, useState } from "react";
+import { useNavigate, useParams } from "react-router-dom";
 import type { Carta } from "../util/interface";
 import TarjetaGuerrero from "../componentes/cartaProyecto";
 
@@ -22,200 +22,382 @@ function CampoDeBatalla({ cartas }: Props) {
   const navigate = useNavigate();
   const [carta1, setCarta1] = useState<Carta | null>(null);
   const [carta2, setCarta2] = useState<Carta | null>(null);
-  const [turno, setTurno] = useState(1);
+  const [turno, setTurno] = useState<Jugador>("p1");
   const [cartaAtacando, setCartaAtacando] = useState<Jugador | null>(null);
   const [logs, setLogs] = useState<LogEntry[]>([]);
   const [gameOver, setGameOver] = useState(false);
   const [winner, setWinner] = useState<Jugador | null>(null);
   const [draw, setDraw] = useState(false);
-  const [autoMode, setAutoMode] = useState(false);
-  const [autoInterval, setAutoInterval] = useState(700);
+  const [autoBattle, setAutoBattle] = useState(false);
+  const timeoutRef = useRef<number | null>(null);
+  const [shakingCard, setShakingCard] = useState<Jugador | null>(null);
 
   useEffect(() => {
     if (!id1 || !id2) return;
-
     const cartaUno = cartas.find((carta) => carta.Numero.toString() === id1);
     const cartaDos = cartas.find((carta) => carta.Numero.toString() === id2);
-
     if (!cartaUno || !cartaDos) {
       setCarta1(null);
       setCarta2(null);
       return;
     }
-
     setCarta1({ ...cartaUno });
     setCarta2({ ...cartaDos });
-    setTurno(1);
+    setTurno("p1");
     setCartaAtacando(null);
     setLogs([]);
     setGameOver(false);
     setWinner(null);
     setDraw(false);
-  }, [id1, id2, cartas]);
+    setAutoBattle(false);
+    setShakingCard(null);
+  }, [cartas, id1, id2]);
 
-  const checkStalemate = (c1: Carta, c2: Carta) => c1.Ataque <= c2.Defensa && c2.Ataque <= c1.Defensa;
+  const calcularDaño = (atacante: Carta, defensor: Carta) => {
+    const daño = atacante.Ataque - defensor.Defensa;
+    return daño > 0 ? daño : 1;
+  };
 
-  const calcularDaño = (atacante: Carta, defensor: Carta) => Math.max(0, atacante.Ataque - defensor.Defensa);
+  const isStalemate = (c1: Carta, c2: Carta) =>
+    c1.Ataque <= c2.Defensa && c2.Ataque <= c1.Defensa;
 
-  const registrarLog = (turnoLog: number, atacante: Carta, defensor: Carta, damage: number, vidaRestante: number) => {
+  const registrarLog = (
+    atacante: Carta,
+    defensor: Carta,
+    damage: number,
+    vidaRestante: number
+  ) => {
     setLogs((prev) => [
       ...prev,
-      { turno: turnoLog, atacante: atacante.Nombre, defensor: defensor.Nombre, damage, vidaRestante },
+      {
+        turno: prev.length + 1,
+        atacante: atacante.Nombre,
+        defensor: defensor.Nombre,
+        damage,
+        vidaRestante,
+      },
     ]);
   };
 
-  // Ejecuta un ataque indicando explícitamente qué jugador ataca
-  const ejecutarAtaqueManual = (atacanteJugador: Jugador) => {
-    if (!carta1 || !carta2 || gameOver || cartaAtacando || autoMode) return;
+  const getDamageClass = (vida: number) => {
+    if (vida <= 0) return "carta-destruida";
+    if (vida <= 25) return "carta-rota";
+    if (vida <= 75) return "carta-daniada";
+    return "carta-sana";
+  };
+
+  const finalizarAnimacionGolpe = () => {
+    setCartaAtacando(null);
+    setTurno((prev) => (prev === "p1" ? "p2" : "p1"));
+  };
+
+  const ejecutarAtaque = (atacanteJugador: Jugador) => {
+    if (!carta1 || !carta2 || gameOver || cartaAtacando) return;
 
     const atacante = atacanteJugador === "p1" ? carta1 : carta2;
     const defensor = atacanteJugador === "p1" ? carta2 : carta1;
     const damage = calcularDaño(atacante, defensor);
     const vidaRestante = Math.max(0, defensor.vida - damage);
 
-    if (atacanteJugador === "p1") setCarta2({ ...carta2, vida: vidaRestante });
-    else setCarta1({ ...carta1, vida: vidaRestante });
-
-    registrarLog(turno, atacante, defensor, damage, vidaRestante);
     setCartaAtacando(atacanteJugador);
+    setShakingCard(atacanteJugador === "p1" ? "p2" : "p1");
+    window.setTimeout(() => setShakingCard(null), 360);
+
+    if (atacanteJugador === "p1") {
+      setCarta2((prev) => (prev ? { ...prev, vida: vidaRestante } : prev));
+    } else {
+      setCarta1((prev) => (prev ? { ...prev, vida: vidaRestante } : prev));
+    }
+
+    registrarLog(atacante, defensor, damage, vidaRestante);
 
     if (vidaRestante <= 0) {
       setGameOver(true);
       setWinner(atacanteJugador);
-      setAutoMode(false);
-      return;
-    }
-
-    const carta1Actualizada = atacanteJugador === "p1" ? carta1 : { ...carta1, vida: vidaRestante };
-    const carta2Actualizada = atacanteJugador === "p1" ? { ...carta2, vida: vidaRestante } : carta2;
-
-    if (checkStalemate(carta1Actualizada, carta2Actualizada)) {
-      setDraw(true);
-      setGameOver(true);
-      setAutoMode(false);
-      return;
+      setAutoBattle(false);
     }
   };
 
-  const ejecutarAtaque = () => {
-    if (!carta1 || !carta2 || gameOver || cartaAtacando) return;
-    const atacanteJugador = turno === 1 ? "p1" : "p2";
-    ejecutarAtaqueManual(atacanteJugador);
+  const ejecutarAtaqueManual = () => {
+    if (!carta1 || !carta2 || gameOver || cartaAtacando || autoBattle) return;
+    if (isStalemate(carta1, carta2)) {
+      setDraw(true);
+      setGameOver(true);
+      setAutoBattle(false);
+      return;
+    }
+    ejecutarAtaque(turno);
+  };
+
+  const ejecutarAtaqueAutomatico = () => {
+    if (!carta1 || !carta2 || gameOver || cartaAtacando || !autoBattle) return;
+    if (isStalemate(carta1, carta2)) {
+      setDraw(true);
+      setGameOver(true);
+      setAutoBattle(false);
+      return;
+    }
+    ejecutarAtaque(turno);
   };
 
   const siguienteTurno = () => {
     if (!carta1 || !carta2 || cartaAtacando || gameOver) return;
-    ejecutarAtaque();
+    if (autoBattle) {
+      ejecutarAtaqueAutomatico();
+      return;
+    }
+    ejecutarAtaque(turno);
   };
 
   const rendirse = () => {
-    if (gameOver || !carta1 || !carta2) return;
+    if (!carta1 || !carta2 || gameOver) return;
     setGameOver(true);
-    setWinner(turno === 1 ? "p2" : "p1");
-    setAutoMode(false);
+    setWinner(turno === "p1" ? "p2" : "p1");
+    setAutoBattle(false);
   };
 
   useEffect(() => {
-    if (!cartaAtacando || gameOver) return;
-    const animacion = window.setTimeout(() => {
-      setCartaAtacando(null);
-      setTurno((prev) => (prev === 1 ? 2 : 1));
-    }, 700);
-
-    return () => {
-      window.clearTimeout(animacion);
-    };
+    if (!cartaAtacando) return;
+    const timer = window.setTimeout(finalizarAnimacionGolpe, 700);
+    return () => window.clearTimeout(timer);
   }, [cartaAtacando, gameOver]);
 
-  // Efecto para auto-batalla
   useEffect(() => {
-    if (!autoMode || gameOver) return;
-    const id = window.setInterval(() => {
-      if (!cartaAtacando && !gameOver) {
-        siguienteTurno();
+    if (timeoutRef.current) {
+      window.clearTimeout(timeoutRef.current);
+      timeoutRef.current = null;
+    }
+    if (!autoBattle || gameOver || cartaAtacando) return;
+    timeoutRef.current = window.setTimeout(() => {
+      if (!gameOver && !cartaAtacando) ejecutarAtaqueAutomatico();
+    }, 700);
+    return () => {
+      if (timeoutRef.current) {
+        window.clearTimeout(timeoutRef.current);
+        timeoutRef.current = null;
       }
-    }, autoInterval);
+    };
+  }, [autoBattle, cartaAtacando, gameOver, turno, carta1, carta2]);
 
-    return () => window.clearInterval(id);
-  }, [autoMode, autoInterval, cartaAtacando, gameOver, carta1, carta2, turno]);
+  const resultadoBatalla = gameOver
+    ? draw
+      ? "Empate épico"
+      : winner === "p1"
+      ? `${carta1?.Nombre ?? "Jugador 1"} gana!`
+      : `${carta2?.Nombre ?? "Jugador 2"} gana!`
+    : `${turno === "p1" ? "Jugador 1" : "Jugador 2"} ataca`;
+
+  const turnoLabel = turno === "p1" ? "Jugador 1" : "Jugador 2";
+  const ventajaActual =
+    carta1 && carta2
+      ? carta1.vida === carta2.vida
+        ? "Empate momentáneo"
+        : carta1.vida > carta2.vida
+        ? "Jugador 1 lidera"
+        : "Jugador 2 lidera"
+      : "Preparando batalla...";
+
+  const deshabilitarSiguiente = Boolean(cartaAtacando) || gameOver || autoBattle;
 
   if (!id1 || !id2 || !carta1 || !carta2) {
     return (
-      <div className="min-h-screen flex items-center justify-center px-6 py-12 text-white">
-        <div className="max-w-xl rounded-3xl bg-black/70 p-10 text-center shadow-2xl shadow-orange-900/40">
-          <p className="text-lg font-semibold text-orange-200">No hay cartas válidas para la batalla.</p>
-          <p className="mt-2 text-sm text-orange-100">Regresa a la selección y elige dos cartas diferentes.</p>
+      <div
+        style={{
+          minHeight: "100vh",
+          background: "#0a0c10",
+          color: "#fff",
+          display: "grid",
+          placeItems: "center",
+          padding: "2rem",
+        }}
+      >
+        <div
+          style={{
+            background: "#141923",
+            borderRadius: "1.5rem",
+            padding: "2rem",
+            border: "1px solid #ff8c00",
+            maxWidth: "540px",
+            textAlign: "center",
+          }}
+        >
+          <h2 style={{ margin: 0, color: "#ffca08" }}>Ruta inválida</h2>
+          <p style={{ margin: "1rem 0", color: "#cbd5e1" }}>
+            Selecciona dos cartas válidas para iniciar la batalla.
+          </p>
+          <button
+            style={{
+              padding: "0.9rem 1.3rem",
+              borderRadius: "999px",
+              border: "none",
+              background: "#f97316",
+              color: "#fff",
+              cursor: "pointer",
+            }}
+            onClick={() => navigate("/seleccionar-cartas")}
+          >
+            Volver a selección
+          </button>
         </div>
       </div>
     );
   }
-
-  if (gameOver) {
-    const cartaGanadora = winner === "p1" ? carta1 : carta2;
-    return (
-      <div className="min-h-screen flex items-center justify-center px-6 py-12 text-white">
-        <div className="max-w-4xl rounded-[2.5rem] bg-gradient-to-br from-slate-900/90 via-black/80 to-orange-950/90 p-10 shadow-2xl shadow-yellow-900/35">
-          <div className="space-y-6 text-center">
-            <p className="text-xs uppercase tracking-[0.32em] text-orange-300/80">Batalla finalizada</p>
-            <h1 className="text-4xl font-black text-yellow-300">{draw ? "Empate técnico" : `Victoria de ${winner === "p1" ? "Jugador 1" : "Jugador 2"}`}</h1>
-            <p className="max-w-2xl mx-auto text-sm text-orange-100">{draw ? "Las cartas se neutralizaron y ningún guerrero pudo imponerse." : `${cartaGanadora.Nombre} ha vencido a su oponente con estilo.`}</p>
-          </div>
-          <div className="mt-10 grid gap-6 lg:grid-cols-2">
-            <div className="rounded-3xl bg-white/5 p-6">
-              <p className="text-sm uppercase tracking-[0.2em] text-orange-200/90">Carta ganadora</p>
-              <p className="mt-3 text-2xl font-bold text-yellow-300">{cartaGanadora.Nombre}</p>
-              <p className="mt-2 text-sm text-orange-100">Vida restante: {cartaGanadora.vida}</p>
-            </div>
-            <div className="rounded-3xl bg-white/5 p-6">
-              <p className="text-sm uppercase tracking-[0.2em] text-orange-200/90">Último registro</p>
-              {logs.length > 0 ? (
-                <div className="mt-4 space-y-3 text-orange-100">
-                  <p className="text-sm">Turno {logs[logs.length - 1].turno}</p>
-                  <p>{logs[logs.length - 1].atacante} atacó a {logs[logs.length - 1].defensor}</p>
-                  <p>Daño: {logs[logs.length - 1].damage}</p>
-                </div>
-              ) : (
-                <p className="mt-4 text-orange-100">No se registró ningún ataque.</p>
-              )}
-            </div>
-          </div>
-        </div>
-      </div>
-    );
-  }
-
-  const atacanteActual = turno === 1 ? "Jugador 1" : "Jugador 2";
 
   return (
-    <div className="min-h-screen bg-[radial-gradient(circle_at_top,_rgba(249,115,22,0.18),_transparent_32%),radial-gradient(circle_at_bottom_right,_rgba(234,179,8,0.16),_transparent_24%)] px-6 py-10 text-white">
-      <div className="mx-auto max-w-7xl space-y-10">
-        <header className="rounded-[2rem] border border-white/10 bg-slate-950/80 p-8 shadow-2xl shadow-slate-950/40 backdrop-blur-xl">
-          <p className="text-sm uppercase tracking-[0.35em] text-orange-200/80">Campo de batalla</p>
-          <div className="mt-4 flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
-            <div>
-              <h1 className="text-4xl font-black text-yellow-300">{carta1.Nombre} vs {carta2.Nombre}</h1>
-              <p className="mt-2 max-w-xl text-sm text-orange-100">Sigue el combate turno a turno en modo manual — haz click en una carta para atacar.</p>
-            </div>
-            <div className="rounded-3xl bg-black/50 px-5 py-4 text-center shadow-inner shadow-orange-900/20">
-              <p className="text-xs uppercase tracking-[0.35em] text-orange-300/70">Turno actual</p>
-              <p className="mt-2 text-xl font-bold text-yellow-300">{atacanteActual}</p>
-            </div>
+    <div
+      style={{
+        minHeight: "100vh",
+        background: "linear-gradient(145deg, #0a0c10 0%, #1a1f2e 100%)",
+        color: "#fff",
+        padding: "24px",
+      }}
+    >
+      <style>{`
+        .shake-card { animation: shakeCard 0.4s ease-in-out 0s 1; }
+        @keyframes shakeCard { 0% { transform: translate(0,0); } 20% { transform: translate(-4px,0); } 40% { transform: translate(4px,0); } 60% { transform: translate(-2px,0); } 80% { transform: translate(2px,0); } 100% { transform: translate(0,0); } }
+        .carta-sana { filter: none; }
+        .carta-daniada { filter: saturate(0.8) brightness(0.95); }
+        .carta-rota { filter: grayscale(0.4) brightness(0.75); }
+        .carta-destruida { filter: grayscale(1) brightness(0.6); }
+        .tarjeta-activa { box-shadow: 0 0 24px rgba(255,255,255,0.35) !important; }
+      `}</style>
+
+      <div style={{ maxWidth: "1240px", margin: "0 auto" }}>
+        <header style={{ textAlign: "center", marginBottom: "28px" }}>
+          <p
+            style={{
+              margin: 0,
+              letterSpacing: "4px",
+              color: "#94a3b8",
+              textTransform: "uppercase",
+            }}
+          >
+            Torneo de Poder
+          </p>
+          <h1
+            style={{
+              margin: "12px 0",
+              fontSize: "2.8rem",
+              color: "#ffca08",
+            }}
+          >
+            {carta1.Nombre} <span style={{ color: "#fff" }}>VS</span>{" "}
+            {carta2.Nombre}
+          </h1>
+          <div
+            style={{
+              display: "inline-flex",
+              gap: "12px",
+              flexWrap: "wrap",
+              justifyContent: "center",
+              marginTop: "10px",
+            }}
+          >
+            <span
+              style={{
+                background: "#1f2937",
+                padding: "10px 18px",
+                borderRadius: "999px",
+                border: "1px solid #334155",
+              }}
+            >
+              Turno: {turnoLabel}
+            </span>
+            <span
+              style={{
+                background: "#111827",
+                padding: "10px 18px",
+                borderRadius: "999px",
+                border: "1px solid #334155",
+              }}
+            >
+              {resultadoBatalla}
+            </span>
           </div>
         </header>
 
-        <div className="grid gap-8 xl:grid-cols-[1.2fr_0.8fr]">
-          <section className="space-y-8 rounded-[2rem] border border-white/10 bg-black/50 p-8 shadow-2xl shadow-black/40 backdrop-blur-xl">
-            <div className="grid gap-6 lg:grid-cols-2">
-                <div
-                onClick={() => ejecutarAtaqueManual("p1")}
-                role="button"
-                tabIndex={0}
-                onKeyDown={(e) => e.key === "Enter" && ejecutarAtaqueManual("p1")}
-                className={`rounded-[1.8rem] border border-white/10 p-6 transition ${cartaAtacando === "p1" ? "ring-4 ring-yellow-300/60 bg-orange-950/70" : "bg-slate-950/80"}`}
+        <div
+          style={{
+            display: "grid",
+            gridTemplateColumns: "1fr 340px",
+            gap: "28px",
+          }}
+        >
+          <section
+            style={{
+              background: "rgba(15,23,42,0.78)",
+              borderRadius: "1.5rem",
+              padding: "24px",
+              border: "1px solid rgba(148,163,184,0.12)",
+            }}
+          >
+            <div
+              style={{
+                display: "flex",
+                flexWrap: "wrap",
+                gap: "20px",
+                justifyContent: "space-between",
+              }}
+            >
+              {/* Jugador 1 */}
+              <div
+                onClick={ejecutarAtaqueManual}
+                className={shakingCard === "p1" ? "shake-card" : ""}
+                style={{
+                  flex: "1 1 320px",
+                  minWidth: "300px",
+                  background: "rgba(255,97,0,0.12)",
+                  borderRadius: "1.5rem",
+                  padding: "18px",
+                  cursor:
+                    gameOver || autoBattle || cartaAtacando
+                      ? "not-allowed"
+                      : "pointer",
+                  boxShadow: gameOver
+                    ? winner === "p1"
+                      ? "0 0 28px rgba(34,197,94,0.3)"
+                      : "0 0 20px rgba(239,68,68,0.25)"
+                    : cartaAtacando === "p1"
+                    ? "0 0 24px rgba(255,202,8,0.4)"
+                    : "0 12px 28px rgba(0,0,0,0.18)",
+                }}
               >
-                <div className="mb-4 flex items-center justify-between gap-3">
-                  <p className="text-sm uppercase tracking-[0.2em] text-orange-200/80">Jugador 1</p>
-                  <div className="rounded-full bg-slate-900/80 px-3 py-1 text-xs text-green-300">Vida {carta1.vida}</div>
+                <div
+                  style={{
+                    display: "flex",
+                    justifyContent: "space-between",
+                    alignItems: "center",
+                    marginBottom: "14px",
+                  }}
+                >
+                  <span style={{ fontWeight: 700, color: "#f97316" }}>
+                    Jugador 1
+                  </span>
+                  <span>❤️ {carta1.vida} HP</span>
+                </div>
+                <div
+                  style={{
+                    width: "100%",
+                    height: "14px",
+                    borderRadius: "999px",
+                    overflow: "hidden",
+                    background: "#0f172a",
+                    marginBottom: "16px",
+                  }}
+                >
+                  <div
+                    style={{
+                      width: `${Math.max(0, Math.min(100, carta1.vida))}%`,
+                      height: "100%",
+                      background:
+                        carta1.vida > 50
+                          ? "#22c55e"
+                          : carta1.vida > 25
+                          ? "#fbbf24"
+                          : "#ef4444",
+                      transition: "width 0.4s ease",
+                    }}
+                  />
                 </div>
                 <TarjetaGuerrero
                   Nombre={carta1.Nombre}
@@ -227,19 +409,71 @@ function CampoDeBatalla({ cartas }: Props) {
                   Debilidad={carta1.Debilidad}
                   Rareza={carta1.Rareza}
                   vida={carta1.vida}
+                  className={`${getDamageClass(carta1.vida)} ${
+                    cartaAtacando === "p1" ? "tarjeta-activa" : ""
+                  }`}
                 />
               </div>
 
+              {/* Jugador 2 */}
               <div
-                onClick={() => ejecutarAtaqueManual("p2")}
-                role="button"
-                tabIndex={0}
-                onKeyDown={(e) => e.key === "Enter" && ejecutarAtaqueManual("p2")}
-                className={`rounded-[1.8rem] border border-white/10 p-6 transition ${cartaAtacando === "p2" ? "ring-4 ring-yellow-300/60 bg-orange-950/70" : "bg-slate-950/80"}`}
+                onClick={ejecutarAtaqueManual}
+                className={shakingCard === "p2" ? "shake-card" : ""}
+                style={{
+                  flex: "1 1 320px",
+                  minWidth: "300px",
+                  background: "rgba(29,78,216,0.12)",
+                  borderRadius: "1.5rem",
+                  padding: "18px",
+                  cursor:
+                    gameOver || autoBattle || cartaAtacando
+                      ? "not-allowed"
+                      : "pointer",
+                  boxShadow: gameOver
+                    ? winner === "p2"
+                      ? "0 0 28px rgba(34,197,94,0.3)"
+                      : "0 0 20px rgba(239,68,68,0.25)"
+                    : cartaAtacando === "p2"
+                    ? "0 0 24px rgba(34,211,238,0.4)"
+                    : "0 12px 28px rgba(0,0,0,0.18)",
+                }}
               >
-                <div className="mb-4 flex items-center justify-between gap-3">
-                  <p className="text-sm uppercase tracking-[0.2em] text-orange-200/80">Jugador 2</p>
-                  <div className="rounded-full bg-slate-900/80 px-3 py-1 text-xs text-green-300">Vida {carta2.vida}</div>
+                <div
+                  style={{
+                    display: "flex",
+                    justifyContent: "space-between",
+                    alignItems: "center",
+                    marginBottom: "14px",
+                  }}
+                >
+                  <span style={{ fontWeight: 700, color: "#22d3ee" }}>
+                    Jugador 2
+                  </span>
+                  <span>❤️ {carta2.vida} HP</span>
+                </div>
+                <div
+                  style={{
+                    width: "100%",
+                    height: "14px",
+                    borderRadius: "999px",
+                    overflow: "hidden",
+                    background: "#0f172a",
+                    marginBottom: "16px",
+                  }}
+                >
+                  <div
+                    style={{
+                      width: `${Math.max(0, Math.min(100, carta2.vida))}%`,
+                      height: "100%",
+                      background:
+                        carta2.vida > 50
+                          ? "#22c55e"
+                          : carta2.vida > 25
+                          ? "#fbbf24"
+                          : "#ef4444",
+                      transition: "width 0.4s ease",
+                    }}
+                  />
                 </div>
                 <TarjetaGuerrero
                   Nombre={carta2.Nombre}
@@ -251,87 +485,186 @@ function CampoDeBatalla({ cartas }: Props) {
                   Debilidad={carta2.Debilidad}
                   Rareza={carta2.Rareza}
                   vida={carta2.vida}
+                  className={`${getDamageClass(carta2.vida)} ${
+                    cartaAtacando === "p2" ? "tarjeta-activa" : ""
+                  }`}
                 />
               </div>
             </div>
 
-            <div className="grid gap-4 md:grid-cols-2">
-              <div className="rounded-3xl border border-white/10 bg-slate-900/80 p-6">
-                <p className="text-sm uppercase tracking-[0.2em] text-orange-200/80">Modo</p>
-                  <p className="mt-3 text-lg font-semibold text-yellow-300">{autoMode ? "Auto" : "Manual"}</p>
-                  <p className="mt-2 text-sm text-orange-100">{autoMode ? "La batalla avanza automáticamente hasta que termine." : "Haz click en una de las cartas para que ataque a su oponente."}</p>
+            <div
+              style={{
+                display: "grid",
+                gridTemplateColumns: "1fr 1fr",
+                gap: "18px",
+                marginTop: "24px",
+              }}
+            >
+              <div
+                style={{
+                  background: "#111827",
+                  borderRadius: "1rem",
+                  padding: "18px",
+                  borderLeft: "5px solid #f97316",
+                }}
+              >
+                <p style={{ margin: 0, color: "#f97316", fontWeight: 700 }}>
+                  Modo
+                </p>
+                <p style={{ margin: "10px 0 0 0", color: "#cbd5e1" }}>
+                  {autoBattle ? "Auto-batalla activa" : "Manual"}
+                </p>
               </div>
-              <div className="rounded-3xl border border-white/10 bg-slate-900/80 p-6">
-                <p className="text-sm uppercase tracking-[0.2em] text-orange-200/80">Último ataque</p>
-                {logs.length > 0 ? (
-                  <div className="mt-3 text-sm text-orange-100">
-                    <p>{logs[logs.length - 1].atacante} atacó a {logs[logs.length - 1].defensor}</p>
-                    <p className="mt-2">Daño: {logs[logs.length - 1].damage}</p>
-                  </div>
-                ) : (
-                  <p className="mt-3 text-sm text-orange-100">Aún no se ha registrado ningún ataque.</p>
-                )}
+              <div
+                style={{
+                  background: "#111827",
+                  borderRadius: "1rem",
+                  padding: "18px",
+                  borderLeft: "5px solid #ef4444",
+                }}
+              >
+                <p style={{ margin: 0, color: "#ef4444", fontWeight: 700 }}>
+                  Estado
+                </p>
+                <p style={{ margin: "10px 0 0 0", color: "#cbd5e1" }}>
+                  {ventajaActual}
+                </p>
               </div>
             </div>
           </section>
 
-          <aside className="space-y-8 rounded-[2rem] border border-white/10 bg-black/55 p-8 shadow-2xl shadow-black/40 backdrop-blur-xl">
-            <div className="rounded-3xl bg-slate-950/80 p-6">
-              <p className="text-sm uppercase tracking-[0.2em] text-orange-200/80">Controles</p>
-              <div className="mt-4 flex flex-col gap-4">
+          <aside
+            style={{
+              display: "flex",
+              flexDirection: "column",
+              gap: "20px",
+            }}
+          >
+            <div
+              style={{
+                background: "#111827",
+                borderRadius: "1.5rem",
+                padding: "22px",
+                border: "1px solid rgba(148,163,184,0.12)",
+              }}
+            >
+              <h3 style={{ margin: 0, color: "#facc15" }}>Controles</h3>
+              <div
+                style={{
+                  display: "grid",
+                  gap: "12px",
+                  marginTop: "18px",
+                }}
+              >
                 <button
-                  type="button"
                   onClick={siguienteTurno}
-                  disabled={Boolean(cartaAtacando) || gameOver || autoMode}
-                  className="rounded-full bg-yellow-300 px-5 py-3 text-sm font-black uppercase tracking-[0.16em] text-black transition hover:bg-yellow-200 disabled:cursor-not-allowed disabled:bg-gray-700"
+                  disabled={deshabilitarSiguiente}
+                  style={{
+                    width: "100%",
+                    padding: "14px",
+                    borderRadius: "12px",
+                    border: "none",
+                    background: deshabilitarSiguiente
+                      ? "#334155"
+                      : "#f97316",
+                    color: "#fff",
+                    cursor: deshabilitarSiguiente
+                      ? "not-allowed"
+                      : "pointer",
+                  }}
                 >
-                  {cartaAtacando ? "Golpe en curso..." : "Siguiente turno"}
+                  {cartaAtacando ? "¡Cargando Ki!..." : "⚡ Siguiente Turno"}
                 </button>
-
-                <div className="flex gap-2">
-                  <button
-                    type="button"
-                    onClick={() => setAutoMode((v) => !v)}
-                    disabled={gameOver}
-                    className="rounded-full bg-emerald-500 px-6 py-3 text-sm font-black uppercase tracking-[0.12em] text-white transition hover:bg-emerald-400 disabled:cursor-not-allowed disabled:bg-gray-700"
-                  >
-                    {autoMode ? "Detener auto-batalla" : "Auto-batalla"}
-                  </button>
-                </div>
-
                 <button
-                  type="button"
-                  onClick={() => navigate('/seleccionar-cartas')}
-                  className="rounded-full bg-blue-500 px-5 py-3 text-sm font-black uppercase tracking-[0.16em] text-white transition hover:bg-blue-400"
+                  onClick={() => setAutoBattle((prev) => !prev)}
+                  disabled={gameOver}
+                  style={{
+                    width: "100%",
+                    padding: "14px",
+                    borderRadius: "12px",
+                    border: "none",
+                    background: gameOver ? "#334155" : "#2563eb",
+                    color: "#fff",
+                    cursor: gameOver ? "not-allowed" : "pointer",
+                  }}
                 >
-                  Volver al mazo
+                  {autoBattle
+                    ? "🛑 Detener Auto-Batalla"
+                    : "🤖 Auto-Batalla Z"}
                 </button>
-
                 <button
-                  type="button"
+                  onClick={() => navigate("/seleccionar-cartas")}
+                  style={{
+                    width: "100%",
+                    padding: "14px",
+                    borderRadius: "12px",
+                    border: "none",
+                    background: "#0f172a",
+                    color: "#fff",
+                    cursor: "pointer",
+                  }}
+                >
+                  🔄 Cambiar Guerreros
+                </button>
+                <button
                   onClick={rendirse}
-                  className="rounded-full bg-red-600 px-5 py-3 text-sm font-black uppercase tracking-[0.16em] text-white transition hover:bg-red-500 disabled:cursor-not-allowed disabled:bg-gray-700"
+                  disabled={gameOver}
+                  style={{
+                    width: "100%",
+                    padding: "14px",
+                    borderRadius: "12px",
+                    border: "none",
+                    background: gameOver ? "#334155" : "#dc2626",
+                    color: "#fff",
+                    cursor: gameOver ? "not-allowed" : "pointer",
+                  }}
                 >
-                  Rendirse
+                  🏳️ Rendirse
                 </button>
               </div>
             </div>
 
-            <div className="rounded-3xl border border-white/10 bg-slate-950/80 p-6">
-              <p className="text-sm uppercase tracking-[0.2em] text-orange-200/80">Registro de batalla</p>
-              <div className="mt-4 space-y-3 text-orange-100">
-                {logs.length === 0 ? (
-                  <p className="text-sm">No hay registros aún.</p>
-                ) : (
-                  logs.slice(-4).reverse().map((log, index) => (
-                    <div key={`${log.turno}-${index}`} className="rounded-2xl border border-orange-300/10 bg-black/60 p-3">
-                      <p className="text-sm font-semibold text-yellow-300">Turno {log.turno}</p>
-                      <p className="text-sm">{log.atacante} atacó a {log.defensor}</p>
-                      <p className="text-sm text-orange-200">Daño: {log.damage}</p>
+            <div
+              style={{
+                background: "#111827",
+                borderRadius: "1.5rem",
+                padding: "22px",
+                border: "1px solid rgba(148,163,184,0.12)",
+                overflow: "auto",
+                maxHeight: "350px",
+              }}
+            >
+              <h3 style={{ margin: 0, color: "#facc15" }}>
+                Registro de Batalla
+              </h3>
+              {logs.length === 0 ? (
+                <p style={{ marginTop: "16px", color: "#9ca3af" }}>
+                  No hay registros aún.
+                </p>
+              ) : (
+                logs
+                  .slice()
+                  .reverse()
+                  .slice(0, 8)
+                  .map((log, idx) => (
+                    <div
+                      key={idx}
+                      style={{
+                        background: "#0f172a",
+                        borderRadius: "12px",
+                        padding: "14px",
+                        marginTop: "12px",
+                        border: "1px solid rgba(255,255,255,0.06)",
+                      }}
+                    >
+                      <strong>Turno {log.turno}</strong>
+                      <br />
+                      {log.atacante} atacó a {log.defensor}
+                      <br />
+                      Daño: {log.damage} | HP restante: {log.vidaRestante}
                     </div>
                   ))
-                )}
-              </div>
+              )}
             </div>
           </aside>
         </div>
@@ -341,4 +674,3 @@ function CampoDeBatalla({ cartas }: Props) {
 }
 
 export default CampoDeBatalla;
- 
