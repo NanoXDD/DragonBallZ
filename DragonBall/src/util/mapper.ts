@@ -47,15 +47,20 @@ export const aApiActualizarCarta = (carta: Carta): Omit<CartaApi, "idCard"> => (
   updatedAt: new Date().toISOString()
 });
 
+
+// mapper.ts - modificar desdeApiCarta
+
 export const desdeApiCarta = (a: CartaApi): Carta => ({
-  Numero: a.idCard,
-  Nombre: a.name,
-  Tipo: a.attributes?.tipo || "",
-  Ataque: a.attack,
-  Defensa: a.defense,
-  Descripcion: a.description,
-  Debilidad: a.attributes?.debilidad || "",
-  Rareza: a.attributes?.rareza || "",
-  Imagen: a.pictureUrl || "",
-  vida: a.lifePoints,
+  Numero: a.idCard ?? 0,
+  Nombre: a.name ?? 'Sin nombre',
+  Tipo: a.attributes?.tipo ?? 'Desconocido',
+  Ataque: a.attack ?? 0,
+  Defensa: a.defense ?? 0,
+  Descripcion: a.description ?? '',
+  Debilidad: a.attributes?.debilidad ?? 'Ninguna',
+  Rareza: a.attributes?.rareza ?? 'Común',
+  Imagen: a.pictureUrl ?? '',
+  vida: a.lifePoints ?? 0,
+  idCard: a.idCard ?? undefined,
+  attributes: a.attributes ?? undefined
 });

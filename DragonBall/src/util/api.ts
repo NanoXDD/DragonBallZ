@@ -117,3 +117,46 @@ export const eliminarCarta = async (idCarta: number): Promise<void> => {
     throw error;
   }
 };
+
+export const generarCartaIA = async (cardPrompt: string, globalContext: string = ""): Promise<CartaApi> => {
+  try {
+    const respuesta = await fetch(`${URL_API}/ai/generate-card`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        usersecretpasskey: SECRET_KEY,
+      },
+      body: JSON.stringify({ globalContext, cardPrompt }),
+    });
+
+    if (!respuesta.ok) {
+      const errorText = await respuesta.text();
+      throw new Error(`Error HTTP ${respuesta.status}: ${errorText}`);
+    }
+
+    const resultado = await respuesta.json();
+    console.log('📦 Respuesta de la IA:', resultado);
+
+    // La respuesta puede venir en resultado.data o directamente en resultado
+    let cartaApi = resultado.data ?? resultado;
+
+    if (!cartaApi || typeof cartaApi !== 'object' || !cartaApi.name) {
+      throw new Error('La respuesta de la IA no tiene el formato esperado.');
+    }
+
+    // Asegurar que tenga idCard (si no, asignar uno temporal)
+    if (!cartaApi.idCard) {
+      cartaApi.idCard = Date.now();
+    }
+
+    // Asegurar atributos mínimos
+    if (!cartaApi.attributes) {
+      cartaApi.attributes = { rareza: 'Común', debilidad: 'Ninguna', tipo: 'Guerrero' };
+    }
+
+    return cartaApi;
+  } catch (error) {
+    console.error('❌ Error al generar carta con IA:', error);
+    throw error;
+  }
+};

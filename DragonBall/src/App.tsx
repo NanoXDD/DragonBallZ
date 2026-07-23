@@ -1,5 +1,6 @@
 ﻿import { useEffect, useState } from "react";
 import "./App.css";
+import GenerarCartaIA from './pages/CartaConIa';  // <-- importar
 import FormularioCarta from "./pages/formulario";
 import ListaCartas from "./pages/lista";
 import { Route, Routes } from "react-router-dom";
@@ -13,6 +14,7 @@ import {
 } from "./util/api";
 import SeleccionarCartas from "./Batalla/SeleccionarCartas";
 import CampoDeBatalla from "./Batalla/CampoDeBatalla";
+import CartaConIa from "./pages/CartaConIa";
 
 function App() {
   const [cartas, setCartas] = useState<Carta[]>([]);
@@ -89,6 +91,10 @@ function App() {
         />
         <Route path="/seleccionar-cartas" element={<SeleccionarCartas mazo={cartas} loading={loading} />} />
         <Route path="/campo-de-batalla/:id1/:id2" element={<CampoDeBatalla cartas={cartas} />} />
+             <Route
+          path="/generar-carta-ia"
+          element={<CartaConIa onGuardar={crearCarta} creando={creando} />}
+        />
       </Routes>
     </div>
   );
