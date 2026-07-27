@@ -1,6 +1,6 @@
 {
-  "buildCommand": "npm --prefix DragonBall run build",
-  "installCommand": "npm --prefix DragonBall install --include=dev",
+  "buildCommand": "cd DragonBall && npm run build",
+  "installCommand": "cd DragonBall && npm install --include=dev",
   "framework": "vite",
   "outputDirectory": "DragonBall/dist"
 }
