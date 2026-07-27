@@ -1,5 +1,3 @@
-import React from 'react';
-
 type LogEntry = {
   turno: number;
   atacante: string;
@@ -17,6 +15,7 @@ export default function LogsBatalla({ logs, turnoActual }: Props) {
   return (
     <div className="logs-container">
       <h3 className="text-lg font-bold">Registro de batalla</h3>
+      <div className="text-xs text-gray-400">Turno actual: {turnoActual}</div>
       <div className="mt-2 max-h-64 overflow-auto text-sm">
         {logs.length === 0 && <p className="text-gray-400">Aún no hay acciones...</p>}
         {logs.map((log, idx) => (

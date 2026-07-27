@@ -1,6 +1,5 @@
 ﻿import { useEffect, useState } from "react";
 import "./App.css";
-import GenerarCartaIA from './pages/CartaConIa';  // <-- importar
 import FormularioCarta from "./pages/formulario";
 import ListaCartas from "./pages/lista";
 import { Route, Routes } from "react-router-dom";
