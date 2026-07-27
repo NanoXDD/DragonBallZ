@@ -27,7 +27,6 @@ export const aApiCartaCrear = (carta: Carta): Omit<Omit<Omit<CartaApi, "idCard">
     rareza: carta.Rareza,
     tipo: carta.Tipo
   },
-  userSecret: "Carl155892EZ"
 });
 
 export const aApiActualizarCarta = (carta: Carta): Omit<CartaApi, "idCard"> => ({
