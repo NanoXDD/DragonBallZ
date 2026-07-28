@@ -1,8 +1,8 @@
 {
   "scripts": {
-    "build": "npm --prefix DragonBall run build"
+    "build": "tsc -b && vite build"
   },
   "devDependencies": {
-    "vite": "^8.0.8"
+    "vite": "^6.0.8"
   }
 }
