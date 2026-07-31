@@ -1,4 +1,4 @@
-﻿import { useEffect, useState } from "react";
+import { useEffect, useState } from "react";
 import "./App.css";
 import FormularioCarta from "./pages/formulario";
 import ListaCartas from "./pages/lista";
